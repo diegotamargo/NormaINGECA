@@ -1,0 +1,54 @@
+# Secrets and machine-specific configuration
+# Ignore every .env anywhere (belt-and-braces: the leaked key lived in a
+# ROOT-level .env that these backend-only rules did not cover).
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+!backend/.env.server.example
+!backend/.env.worker.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# RAG data (never committed)
+**/RAG/
+RAG/
+backend/RAG/
+
+# Node / build artifacts
+frontend/node_modules/
+frontend/dist/
+packaging/dist/
+packaging/build/
+packaging/Output/
+
+# PyInstaller build artifacts (if generated outside packaging/)
+build/
+dist/
+
+# Local databases (aiosqlite)
+*.db
+*.sqlite3
+
+# Local data: corpora and indexes are never committed
+data/
+*.csv
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json

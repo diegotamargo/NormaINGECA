@@ -1,0 +1,25 @@
+# =====================================================================
+# WORKER requirements: what the packaged .exe bundles.
+# Includes the local embedding stack (torch + sentence-transformers), so
+# every PC embeds the user's question with Qwen3-Embedding-0.6B and stays
+# self-sufficient (no dependency on a central embedding service). The
+# model WEIGHTS are downloaded to the HuggingFace cache on first run, not
+# pinned here.
+# =====================================================================
+fastapi==0.139.0
+uvicorn[standard]==0.51.0
+sse-starlette==3.4.5
+pydantic-settings==2.14.2
+python-dotenv==1.2.2
+httpx==0.28.1
+
+llama-index-core==0.14.23
+llama-index-retrievers-bm25==0.7.1
+PyStemmer==2.2.0.3                     # <3 required by llama-index-retrievers-bm25
+llama-index-readers-file==0.6.0        # per-page PDF parsing (page_label metadata)
+
+# Generation LLM (Gemini by default)
+llama-index-llms-google-genai==0.9.6
+
+# Local embedding + reranker stack (Qwen3-Embedding-0.6B, bge-reranker-v2-m3)
+llama-index-embeddings-huggingface==0.7.0
