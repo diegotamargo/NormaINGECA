@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 // Left navigation. Collapsible. The tabs are the backend "areas"
 // (normativa / edpr / tecnologo) — the same keys POST /api/chat expects.
 
@@ -7,6 +9,10 @@ const AREA_ICONS = {
   tecnologo: 'engineering',
 }
 
+// Company logo lives in /public. If the file isn't present yet we fall back to
+// the built-in icon so the header never shows a broken image.
+const LOGO_SRC = '/ingeca-logo.png'
+
 export default function Sidebar({
   areas,
   area,
@@ -15,12 +21,15 @@ export default function Sidebar({
   onToggleCollapsed,
   onNewAnalysis,
   onToggleTheme,
+  dark,
 }) {
+  const [logoOk, setLogoOk] = useState(true)
+
   return (
     <nav
       className={
-        'bg-surface-container-low/90 backdrop-blur-xl h-full fixed left-0 top-0 border-r border-outline-variant flex flex-col p-lg gap-sm z-40 hidden md:flex transition-all duration-300 ease-in-out ' +
-        (collapsed ? 'sidebar-collapsed w-[80px]' : 'sidebar-expanded w-sidebar-width')
+        'bg-surface-container-low/90 backdrop-blur-xl h-full fixed left-0 top-0 border-r border-outline-variant flex flex-col gap-sm z-40 hidden md:flex transition-all duration-300 ease-in-out py-lg ' +
+        (collapsed ? 'w-[80px] px-3' : 'w-sidebar-width px-lg')
       }
       id="sidebar"
     >
@@ -35,16 +44,30 @@ export default function Sidebar({
         </span>
       </button>
 
-      {/* Header */}
-      <div className="flex items-center gap-sm mb-lg px-xs overflow-hidden">
-        <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-error-container shrink-0">
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-            precision_manufacturing
-          </span>
-        </div>
+      {/* Header: company logo + product name */}
+      <div
+        className={
+          'flex items-center mb-lg overflow-hidden ' +
+          (collapsed ? 'justify-center' : 'gap-sm px-xs')
+        }
+      >
+        {logoOk && !collapsed ? (
+          <img
+            src={LOGO_SRC}
+            alt="Ingeca"
+            onError={() => setLogoOk(false)}
+            className="h-9 w-auto object-contain shrink-0"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center text-on-error-container shrink-0">
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+              precision_manufacturing
+            </span>
+          </div>
+        )}
         {!collapsed && (
-          <div className="transition-opacity duration-300 whitespace-nowrap">
-            <h1 className="font-headline-lg text-primary-container text-xl font-bold leading-tight">
+          <div className="whitespace-nowrap min-w-0">
+            <h1 className="font-headline-lg text-primary-container text-xl font-bold leading-tight truncate">
               NormaINGECA
             </h1>
             <p className="font-label-caps text-label-caps text-on-surface-variant uppercase">
@@ -57,7 +80,11 @@ export default function Sidebar({
       {/* CTA: new analysis (clears current area history) */}
       <button
         onClick={onNewAnalysis}
-        className="w-full py-sm px-md bg-gradient-to-r from-primary-container to-[#b3232d] text-on-error-container rounded-xl font-label-caps text-label-caps flex items-center justify-center gap-sm mb-md hover:brightness-110 transition-all duration-300 glow-effect overflow-hidden interactive-element active:scale-95"
+        title="Nuevo análisis"
+        className={
+          'w-full py-sm bg-gradient-to-r from-primary-container to-[#b3232d] text-on-error-container rounded-xl font-label-caps text-label-caps flex items-center mb-md hover:brightness-110 transition-all duration-300 glow-effect overflow-hidden interactive-element active:scale-95 ' +
+          (collapsed ? 'justify-center px-0' : 'justify-center gap-sm px-md')
+        }
       >
         <span className="material-symbols-outlined shrink-0" style={{ fontSize: '18px' }}>
           add
@@ -75,7 +102,8 @@ export default function Sidebar({
               onClick={() => onSelectArea(a.key)}
               title={a.label}
               className={
-                'flex items-center gap-md px-md py-sm rounded-xl w-full text-left font-label-caps text-label-caps interactive-element ' +
+                'flex items-center rounded-xl w-full font-label-caps text-label-caps interactive-element ' +
+                (collapsed ? 'justify-center px-0 py-sm ' : 'gap-md px-md py-sm text-left ') +
                 (active
                   ? 'bg-gradient-to-r from-primary-container to-[#b3232d] text-on-error-container glow-effect hover:brightness-110'
                   : 'text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out')
@@ -84,7 +112,7 @@ export default function Sidebar({
               <span className="material-symbols-outlined shrink-0" style={{ fontSize: '20px' }}>
                 {AREA_ICONS[a.key] || 'description'}
               </span>
-              {!collapsed && <span className="whitespace-nowrap">{a.label}</span>}
+              {!collapsed && <span className="truncate min-w-0 flex-1">{a.label}</span>}
             </button>
           )
         })}
@@ -93,26 +121,18 @@ export default function Sidebar({
       {/* Theme toggle */}
       <div className="mt-auto pt-4 border-t border-outline-variant/30">
         <button
-          className="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high rounded-xl w-full text-left transition-all duration-200 ease-in-out font-label-caps text-label-caps interactive-element"
           onClick={onToggleTheme}
+          title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          className={
+            'flex items-center rounded-xl w-full text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out font-label-caps text-label-caps interactive-element ' +
+            (collapsed ? 'justify-center px-0 py-sm' : 'gap-md px-md py-sm text-left')
+          }
         >
-          <span
-            className="material-symbols-outlined shrink-0 hidden dark:block"
-            style={{ fontSize: '20px' }}
-          >
-            dark_mode
-          </span>
-          <span
-            className="material-symbols-outlined shrink-0 block dark:hidden"
-            style={{ fontSize: '20px' }}
-          >
-            light_mode
+          <span className="material-symbols-outlined shrink-0" style={{ fontSize: '20px' }}>
+            {dark ? 'dark_mode' : 'light_mode'}
           </span>
           {!collapsed && (
-            <div className="whitespace-nowrap">
-              <span className="hidden dark:inline">Tema Oscuro</span>
-              <span className="inline dark:hidden">Tema Claro</span>
-            </div>
+            <span className="whitespace-nowrap">{dark ? 'Modo Oscuro' : 'Modo Claro'}</span>
           )}
         </button>
       </div>

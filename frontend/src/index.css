@@ -3,6 +3,55 @@
 @tailwind utilities;
 
 /* ------------------------------------------------------------------ */
+/* Colour palettes. Tailwind's used tokens resolve to these variables  */
+/* (see tailwind.config.js), so toggling the `dark` class on <html>    */
+/* flips the whole UI between the light and dark schemes.               */
+/* Values are "R G B" triplets for rgb(var(--x) / <alpha>).            */
+/* ------------------------------------------------------------------ */
+:root {
+  /* LIGHT (default) */
+  --c-surface: 250 245 245;
+  --c-surface-container: 242 236 236;
+  --c-surface-container-low: 247 241 241;
+  --c-surface-container-lowest: 255 255 255;
+  --c-surface-container-high: 236 229 229;
+  --c-surface-container-highest: 230 222 222;
+  --c-on-surface: 28 27 27;
+  --c-on-surface-variant: 87 67 67;
+  --c-primary: 165 48 58;
+  --c-primary-container: 134 26 34; /* brand red — same in both modes */
+  --c-on-primary-container: 255 218 216;
+  --c-on-error-container: 255 218 214;
+  --c-error: 186 26 26;
+  --c-outline-variant: 216 194 193;
+  /* Custom-CSS-only tokens */
+  --c-glass: 255 255 255;
+  --c-glass-border: 230 222 222;
+  --c-scrollbar: 207 196 196;
+}
+
+.dark {
+  /* DARK */
+  --c-surface: 19 19 19;
+  --c-surface-container: 32 31 31;
+  --c-surface-container-low: 28 27 27;
+  --c-surface-container-lowest: 14 14 14;
+  --c-surface-container-high: 42 42 42;
+  --c-surface-container-highest: 53 53 52;
+  --c-on-surface: 229 226 225;
+  --c-on-surface-variant: 223 191 190;
+  --c-primary: 255 179 176;
+  --c-primary-container: 134 26 34;
+  --c-on-primary-container: 255 149 146;
+  --c-on-error-container: 255 218 214;
+  --c-error: 255 180 171;
+  --c-outline-variant: 88 65 64;
+  --c-glass: 19 19 19;
+  --c-glass-border: 53 53 52;
+  --c-scrollbar: 53 53 52;
+}
+
+/* ------------------------------------------------------------------ */
 /* Base                                                               */
 /* ------------------------------------------------------------------ */
 html,
@@ -13,6 +62,8 @@ body,
 
 body {
   font-family: 'Geist', system-ui, sans-serif;
+  background: rgb(var(--c-surface));
+  color: rgb(var(--c-on-surface));
 }
 
 .material-symbols-outlined {
@@ -31,12 +82,12 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Custom classes ported verbatim from the Stitch <style> block        */
+/* Custom classes (theme-aware via the variables above)                */
 /* ------------------------------------------------------------------ */
 .glass-panel {
-  background-color: rgba(19, 19, 19, 0.8);
+  background-color: rgb(var(--c-glass) / 0.8);
   backdrop-filter: blur(12px);
-  border: 1px solid #353534;
+  border: 1px solid rgb(var(--c-glass-border));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 .glow-effect {
@@ -79,12 +130,10 @@ body {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #353534;
+  background: rgb(var(--c-scrollbar));
   border-radius: 2px;
 }
 
-/* Keyframe used by .thinking-indicator (Tailwind also defines it, but the
-   raw CSS pseudo-element references it directly). */
 @keyframes loadingBeam {
   0% {
     left: -100%;
@@ -94,6 +143,23 @@ body {
   }
   100% {
     left: 100%;
+  }
+}
+
+/* Caret shown at the end of the answer while it is still streaming. */
+.stream-caret::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: rgb(var(--c-primary));
+  animation: caretBlink 1s steps(2, start) infinite;
+}
+@keyframes caretBlink {
+  50% {
+    opacity: 0;
   }
 }
 
@@ -117,20 +183,20 @@ body {
 }
 .markdown strong {
   font-weight: 700;
-  color: #fff;
+  color: rgb(var(--c-on-surface));
 }
 .markdown code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.85em;
   background: rgba(134, 26, 34, 0.1);
   border: 1px solid rgba(134, 26, 34, 0.2);
-  color: #ffb3b0;
+  color: rgb(var(--c-primary));
   padding: 0.05rem 0.35rem;
   border-radius: 0.25rem;
 }
 .markdown pre {
-  background: #0e0e0e;
-  border: 1px solid #353534;
+  background: rgb(var(--c-surface-container-lowest));
+  border: 1px solid rgb(var(--c-glass-border));
   border-radius: 0.5rem;
   padding: 0.75rem;
   overflow-x: auto;
@@ -140,10 +206,10 @@ body {
   background: none;
   border: none;
   padding: 0;
-  color: #dfbfbe;
+  color: rgb(var(--c-on-surface-variant));
 }
 .markdown a {
-  color: #ffb3b0;
+  color: rgb(var(--c-primary));
   text-decoration: underline;
 }
 .markdown table {
@@ -153,6 +219,6 @@ body {
 }
 .markdown th,
 .markdown td {
-  border: 1px solid #353534;
+  border: 1px solid rgb(var(--c-glass-border));
   padding: 0.3rem 0.6rem;
 }

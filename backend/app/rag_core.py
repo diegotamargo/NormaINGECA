@@ -198,10 +198,15 @@ class RAGEngine:
             sources.append({
                 "archivo": fname,
                 "ruta_completa": os.path.join(pdf_dir, fname) if pdf_dir and fname else "",
-                "pagina": meta.get("page_label", "N/A"),
+                "pagina": str(meta.get("page_label", "N/A")),
                 # Reranker score if enabled, RRF score otherwise. The frontend
                 # no longer displays it (RRF values are meaningless to users),
                 # but it is kept for the feedback/audit trail.
-                "score": round(node.score, 3) if node.score else 0.0,
+                # NOTE: the reranker (torch, esp. on GPU) returns numpy float32
+                # scores, which are NOT JSON-serializable — cast to a native
+                # Python float before this dict reaches json.dumps in the SSE
+                # stream (main.py), otherwise the "sources" event raises
+                # "Object of type float32 is not JSON serializable".
+                "score": round(float(node.score), 3) if node.score is not None else 0.0,
             })
         return response.response_gen, sources

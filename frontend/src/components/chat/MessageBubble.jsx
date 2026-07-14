@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { renderMarkdown } from '../../lib/markdown.js'
+import { useSmoothText } from '../../hooks/useSmoothText.js'
 
 // A single chat turn. User messages are plain text on the right; assistant
 // messages render Markdown on the left with a citation chip (opens the source
@@ -8,6 +9,11 @@ export default function MessageBubble({ message, onVote, onOpenSources }) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const sourceCount = message.sources?.length || 0
+
+  // While the answer streams, reveal it progressively as plain text (fast, no
+  // per-frame Markdown/KaTeX reparse). Once finished, render full Markdown.
+  const streaming = !isUser && !message.done && !message.error
+  const smoothText = useSmoothText(message.text, streaming)
 
   if (isUser) {
     return (
@@ -48,6 +54,10 @@ export default function MessageBubble({ message, onVote, onOpenSources }) {
           <p className="font-body-md text-body-md text-error leading-relaxed font-semibold">
             {message.text}
           </p>
+        ) : streaming ? (
+          <p className="markdown font-body-md text-body-md text-on-surface leading-relaxed whitespace-pre-wrap stream-caret">
+            {smoothText}
+          </p>
         ) : (
           <div
             className="markdown font-body-md text-body-md text-on-surface leading-relaxed"
@@ -55,8 +65,8 @@ export default function MessageBubble({ message, onVote, onOpenSources }) {
           />
         )}
 
-        {/* Action row */}
-        {!message.error && message.text && (
+        {/* Action row — only once the answer is complete */}
+        {!message.error && message.done && message.text && (
           <div className="mt-4 flex flex-wrap gap-2 items-center">
             {sourceCount > 0 && (
               <button

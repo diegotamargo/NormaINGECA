@@ -8,6 +8,9 @@
 !**/.env.example
 !backend/.env.server.example
 !backend/.env.worker.example
+# Build-only config with real paths + shared key — never commit
+.env.dist
+**/.env.dist
 
 # Python
 __pycache__/

@@ -22,7 +22,7 @@ export default function App() {
   // Layout / UI state (kept out of the chat hook on purpose).
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sourcePanelOpen, setSourcePanelOpen] = useState(true)
-  const [dark, setDark] = useState(true)
+  const [dark, setDark] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
@@ -48,6 +48,7 @@ export default function App() {
         onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
         onNewAnalysis={newAnalysis}
         onToggleTheme={() => setDark((v) => !v)}
+        dark={dark}
       />
 
       <MobileHeader onNewAnalysis={newAnalysis} />

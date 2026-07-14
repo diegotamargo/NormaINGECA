@@ -83,6 +83,7 @@ export function useChat() {
         sources: [],
         vote: null,
         error: false,
+        done: false, // flips true on the SSE "done"/"error" event
       }
 
       setMessagesByArea((prev) => ({
@@ -100,11 +101,14 @@ export function useChat() {
               setActiveSourcesId(assistantId) // auto-reveal fresh sources
             },
             onToken: (t) => patchMessage(areaKey, assistantId, (m) => ({ text: m.text + t })),
-            onError: (e) => patchMessage(areaKey, assistantId, { text: e, error: true }),
-            onDone: () => {},
+            onError: (e) => patchMessage(areaKey, assistantId, { text: e, error: true, done: true }),
+            onDone: () => patchMessage(areaKey, assistantId, { done: true }),
           },
         )
       } finally {
+        // Ensure the message is marked finished even if the stream ended
+        // without an explicit done/error event.
+        patchMessage(areaKey, assistantId, { done: true })
         setBusy(false)
       }
     },

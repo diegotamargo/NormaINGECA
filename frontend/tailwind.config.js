@@ -8,8 +8,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        'primary-container': '#861a22',
-        'on-error-container': '#ffdad6',
+        // Tokens actually used across the UI are driven by CSS variables so
+        // they flip between the dark and light palettes defined in index.css.
+        // The "<alpha-value>" placeholder keeps Tailwind's /opacity modifiers
+        // (e.g. bg-primary-container/20) working.
+        'primary-container': 'rgb(var(--c-primary-container) / <alpha-value>)',
+        'on-error-container': 'rgb(var(--c-on-error-container) / <alpha-value>)',
+        'on-surface-variant': 'rgb(var(--c-on-surface-variant) / <alpha-value>)',
+        primary: 'rgb(var(--c-primary) / <alpha-value>)',
+        'on-surface': 'rgb(var(--c-on-surface) / <alpha-value>)',
+        'outline-variant': 'rgb(var(--c-outline-variant) / <alpha-value>)',
+        error: 'rgb(var(--c-error) / <alpha-value>)',
+        'surface-container-low': 'rgb(var(--c-surface-container-low) / <alpha-value>)',
+        'surface-container-high': 'rgb(var(--c-surface-container-high) / <alpha-value>)',
+        'surface-container-highest': 'rgb(var(--c-surface-container-highest) / <alpha-value>)',
+        'surface-container-lowest': 'rgb(var(--c-surface-container-lowest) / <alpha-value>)',
+        surface: 'rgb(var(--c-surface) / <alpha-value>)',
+        'surface-container': 'rgb(var(--c-surface-container) / <alpha-value>)',
+        'on-primary-container': 'rgb(var(--c-on-primary-container) / <alpha-value>)',
+
+        // Remaining Material tokens (not currently referenced by components) —
+        // kept static so nothing else changes.
         'on-tertiary-fixed': '#1d1b1b',
         'surface-dim': '#131313',
         'surface-tint': '#ffb3b0',
@@ -24,36 +43,24 @@ export default {
         'on-background': '#e5e2e1',
         'inverse-primary': '#a93539',
         'on-secondary': '#4a262a',
-        'on-surface-variant': '#dfbfbe',
-        primary: '#ffb3b0',
         'surface-bright': '#3a3939',
         'surface-variant': '#353534',
         outline: '#a68a89',
-        'on-surface': '#e5e2e1',
-        'outline-variant': '#584140',
         'on-primary-fixed-variant': '#891c24',
         'secondary-fixed': '#ffdadc',
         'on-secondary-fixed': '#311116',
         secondary: '#f0b8bc',
-        'surface-container-low': '#1c1b1b',
         'secondary-fixed-dim': '#f0b8bc',
-        error: '#ffb4ab',
         'inverse-surface': '#e5e2e1',
-        'surface-container-high': '#2a2a2a',
         'on-tertiary': '#333030',
         'on-error': '#690005',
         'primary-fixed': '#ffdad8',
         'tertiary-container': '#484444',
-        'surface-container-highest': '#353534',
         'on-tertiary-container': '#b7b1b1',
         'tertiary-fixed-dim': '#cbc5c5',
         'on-tertiary-fixed-variant': '#494646',
-        'surface-container-lowest': '#0e0e0e',
-        surface: '#131313',
         'on-primary-fixed': '#410006',
-        'surface-container': '#201f1f',
         'on-secondary-fixed-variant': '#643c3f',
-        'on-primary-container': '#ff9592',
         'error-container': '#93000a',
       },
       borderRadius: {

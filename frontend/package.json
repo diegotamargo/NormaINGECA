@@ -9,7 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "katex": "^0.16.11",
     "markdown-it": "^14.1.0",
+    "markdown-it-texmath": "^1.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

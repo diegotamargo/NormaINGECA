@@ -44,7 +44,9 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Source: "dist\norma-backend.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\frontend\*"; DestDir: "{app}\frontend"; Flags: ignoreversion recursesubdirs
 ; onlyifdoesntexist: an upgrade never overwrites a configured .env
-Source: "..\backend\.env.example"; DestDir: "{app}"; DestName: ".env"; Flags: onlyifdoesntexist
+; .env.dist holds the real shared paths + key (git-ignored). .env.example
+; stays blank as the public GitHub template.
+Source: "..\backend\.env.dist"; DestDir: "{app}"; DestName: ".env"; Flags: onlyifdoesntexist
 Source: "launcher.ico"; DestDir: "{app}"
 
 [Icons]
