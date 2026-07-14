@@ -26,6 +26,7 @@ Run from source:
 The PyInstaller build (see packaging/) uses this module as its entry point.
 """
 import logging
+import os
 import socket
 import sys
 import threading
@@ -51,7 +52,7 @@ def _already_running(host: str, port: int, timeout: float = 1.0) -> bool:
         return False
 
 
-def _open_browser_when_ready(host: str, port: int, timeout: float = 30.0) -> None:
+def _open_browser_when_ready(host: str, port: int, timeout: float = 180.0) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
@@ -60,6 +61,54 @@ def _open_browser_when_ready(host: str, port: int, timeout: float = 30.0) -> Non
                 return
         except OSError:
             time.sleep(0.3)
+
+
+def _resource(name: str) -> str:
+    """Locate a bundled data file both frozen (PyInstaller _MEIPASS) and from
+    source (packaging/ next to the backend)."""
+    base = getattr(sys, "_MEIPASS", None)
+    candidates = [
+        os.path.join(base, name) if base else None,
+        os.path.join(os.path.dirname(sys.executable), name),
+        os.path.join(os.path.dirname(__file__), "..", "..", "packaging", name),
+    ]
+    for c in candidates:
+        if c and os.path.exists(c):
+            return c
+    return name
+
+
+def _start_tray(host: str, port: int):
+    """Show a system-tray icon with the app logo and an Abrir / Salir menu, so
+    end users get a clean UI (no console) and a clear way to reopen or quit.
+    Runs in a daemon thread; degrades to nothing if pystray is unavailable."""
+    try:
+        from PIL import Image
+        import pystray
+    except Exception as e:  # noqa: BLE001 — tray is optional, never fatal
+        logger.warning("Tray icon unavailable (%s); continuing without it.", e)
+        return None
+
+    def _on_open(icon, item):
+        webbrowser.open(f"http://{host}:{port}")
+
+    def _on_quit(icon, item):
+        logger.info("Quit requested from tray icon.")
+        icon.stop()
+        os._exit(0)   # hard exit frees the models' RAM immediately
+
+    try:
+        image = Image.open(_resource("launcher.ico"))
+    except Exception:  # noqa: BLE001 — fall back to a solid Ingeca-red square
+        image = Image.new("RGB", (64, 64), (139, 8, 8))
+
+    menu = pystray.Menu(
+        pystray.MenuItem("Abrir NormaINGECA", _on_open, default=True),
+        pystray.MenuItem("Salir", _on_quit),
+    )
+    icon = pystray.Icon("NormaINGECA", image, "NormaINGECA", menu)
+    threading.Thread(target=icon.run, daemon=True).start()
+    return icon
 
 
 def _bind_socket(host: str, port: int) -> socket.socket:
@@ -88,6 +137,10 @@ def main() -> None:
             args=(s.app_host, s.app_port),
             daemon=True,
         ).start()
+
+    # Tray icon: gives end users a clean way to reopen the app or quit it,
+    # which matters now that there is no console window to close.
+    _start_tray(s.app_host, s.app_port)
 
     # Import here so config/env errors surface before uvicorn starts.
     from .main import app

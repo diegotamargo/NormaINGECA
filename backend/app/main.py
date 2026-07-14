@@ -25,6 +25,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -49,6 +50,11 @@ MSG_INTERNAL = "Ha ocurrido un error interno procesando la consulta."
 engine: RAGEngine | None = None
 queue: LLMQueue | None = None
 _janitor: asyncio.Task | None = None
+_watchdog: asyncio.Task | None = None
+
+# Monotonic timestamp of the last real user activity (a chat/feedback/reset
+# request). The idle watchdog exits the process when this gets old enough.
+_last_activity: float = 0.0
 
 
 async def _session_janitor():
@@ -61,16 +67,36 @@ async def _session_janitor():
             logger.exception("session janitor failed")
 
 
+async def _idle_watchdog():
+    """Exit the process after IDLE_SHUTDOWN_MINUTES with no chat activity, so
+    the ~2-3 GB the models hold in RAM is freed when the app sits unused. The
+    tray icon / desktop shortcut relaunches it on demand."""
+    limit = _settings.idle_shutdown_minutes * 60
+    if limit <= 0:
+        return
+    while True:
+        await asyncio.sleep(60)
+        idle = time.monotonic() - _last_activity
+        if idle >= limit:
+            logger.info("Idle for %.0f min with no activity — shutting down to "
+                        "free memory.", idle / 60)
+            os._exit(0)   # hard exit: torch worker threads never block shutdown
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global engine, queue, _janitor
+    global engine, queue, _janitor, _watchdog, _last_activity
     logger.info("Starting NormaINGECA v2 backend...")
     engine = RAGEngine()          # configures backend; indexes load lazily
     queue = LLMQueue()
     await queue.start()
+    _last_activity = time.monotonic()   # start the idle clock at launch
     _janitor = asyncio.create_task(_session_janitor())
+    _watchdog = asyncio.create_task(_idle_watchdog())
     yield
     _janitor.cancel()
+    if _watchdog is not None:
+        _watchdog.cancel()
     await queue.stop()
 
 
@@ -98,6 +124,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Reset the idle clock on real user activity only. Health probes and static
+# asset requests are deliberately excluded, so an open-but-unused tab still
+# lets the app auto-shut-down and free memory.
+_ACTIVITY_PATHS = {"/api/chat", "/api/feedback", "/api/reset"}
+
+
+@app.middleware("http")
+async def _track_activity(request, call_next):
+    if request.url.path in _ACTIVITY_PATHS:
+        global _last_activity
+        _last_activity = time.monotonic()
+    return await call_next(request)
+
 
 @app.get("/api/health")
 async def health():
@@ -115,6 +154,31 @@ async def areas():
               "edpr": "Especificaciones EDP",
               "tecnologo": "Especificaciones Tecnólogo"}
     return [{"key": k, "label": labels.get(k, k)} for k in _settings.areas]
+
+
+def _read_suggestions(vector_dir: str) -> list:
+    """Example questions cached next to the index by the ingest run."""
+    path = os.path.join(vector_dir, "suggestions.json")
+    if not vector_dir or not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    return [str(q) for q in data][:3] if isinstance(data, list) else []
+
+
+@app.get("/api/suggestions")
+async def suggestions(area: str):
+    """Area-specific example questions (generated at ingest from the real
+    documents). Returns [] when none exist yet; the UI then falls back to a
+    generic set."""
+    paths = _settings.areas.get(area)
+    if not paths:
+        return []
+    try:
+        return await asyncio.to_thread(_read_suggestions, paths["vector_dir"])
+    except Exception:  # noqa: BLE001 — never break the empty screen over this
+        logger.exception("failed reading suggestions for area=%s", area)
+        return []
 
 
 @app.post("/api/chat")

@@ -83,6 +83,12 @@ class Settings(BaseSettings):
     memory_token_limit: int = 8000
     session_ttl_minutes: int = 120
 
+    # Auto-shutdown: exit the process after this many minutes with no chat
+    # activity, so the ~2-3 GB the two models hold in RAM is freed when nobody
+    # is using the app. Relaunching (tray icon / desktop shortcut) reloads them.
+    # Set 0 to disable and keep the app resident.
+    idle_shutdown_minutes: int = 15
+
     # ------------------------------------------------------------------
     # Request queue (protects the LLM from concurrent overload)
     # ------------------------------------------------------------------

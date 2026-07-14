@@ -10,12 +10,20 @@ export default function ChatView({
   onAsk,
   onVote,
   onOpenSources,
+  sourcePanelOpen,
+  onToggleSources,
+  suggestions,
 }) {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user')
 
   return (
     <section className="flex-1 flex flex-col mx-auto w-full relative h-full border-r border-outline-variant/30 px-lg">
-      <ChatHeader areaLabel={areaLabel} currentQuestion={lastUser?.text} />
+      <ChatHeader
+        areaLabel={areaLabel}
+        currentQuestion={lastUser?.text}
+        sourcePanelOpen={sourcePanelOpen}
+        onToggleSources={onToggleSources}
+      />
       <ChatStream
         messages={messages}
         busy={busy}
@@ -23,6 +31,7 @@ export default function ChatView({
         onVote={onVote}
         onOpenSources={onOpenSources}
         onSuggest={onAsk}
+        suggestions={suggestions}
       />
       <ChatInput onSend={onAsk} busy={busy} />
     </section>

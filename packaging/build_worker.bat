@@ -2,7 +2,7 @@
 REM =====================================================================
 REM Builds the worker deliverables on a Windows machine:
 REM   1. Vue frontend      -> frontend\dist
-REM   2. norma-backend.exe -> packaging\dist\norma-backend.exe
+REM   2. norma-backend     -> packaging\dist\norma-backend\ (onedir folder)
 REM   3. Installer         -> packaging\Output\NormaINGECA_Setup.exe
 REM Prerequisites: Python 3.12, Node 20+, Inno Setup 6 (iscc on PATH).
 REM Run from the repository root:  packaging\build_worker.bat
@@ -25,8 +25,9 @@ cd packaging
 python -m PyInstaller --clean --noconfirm norma_backend.spec || goto :error
 
 echo [4/4] Smoke test: starting the exe and probing /api/health...
-REM Use mock backends for the smoke test so the build needs no API key
-REM and no model download; this only verifies the exe boots and serves.
+REM ONEDIR: the exe lives in dist\norma-backend\ and chdirs to its own folder
+REM at startup, so the smoke-test .env and frontend must sit there too.
+REM Mock backends: no API key, no model download; just verify boot + serve.
 (
   echo LLM_BACKEND=mock
   echo EMBED_BACKEND=mock
@@ -34,15 +35,17 @@ REM and no model download; this only verifies the exe boots and serves.
   echo APP_PORT=58734
   echo FRONTEND_DIST_DIR=frontend
   echo OPEN_BROWSER=false
-) > dist\.env
-mkdir dist\frontend 2>nul
-xcopy /e /y /q ..\frontend\dist dist\frontend\ >nul
-start "" /min dist\norma-backend.exe
+) > dist\norma-backend\.env
+mkdir dist\norma-backend\frontend 2>nul
+xcopy /e /y /q ..\frontend\dist dist\norma-backend\frontend\ >nul
+start "" /min dist\norma-backend\norma-backend.exe
 timeout /t 8 /nobreak >nul
-curl -s http://127.0.0.1:58734/api/health || echo SMOKE TEST FAILED - inspect dist\norma-backend.exe manually
+curl -s http://127.0.0.1:58734/api/health || echo SMOKE TEST FAILED - inspect dist\norma-backend\norma-backend.exe manually
 taskkill /im norma-backend.exe /f >nul 2>&1
-REM Remove the smoke-test .env so the installer ships the real template.
-del /q dist\.env >nul 2>&1
+REM Clean the smoke-test artefacts so the installer ships a pristine folder
+REM (the real .env comes from .env.dist, the frontend from ..\frontend\dist).
+del /q dist\norma-backend\.env >nul 2>&1
+rmdir /s /q dist\norma-backend\frontend >nul 2>&1
 
 echo Building installer with Inno Setup...
 iscc NormaINGECA.iss || goto :error

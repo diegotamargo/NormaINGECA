@@ -25,6 +25,19 @@ export async function fetchHealth() {
   return r.json()
 }
 
+// GET /api/suggestions?area=X -> ["...", "...", "..."] (example questions
+// generated at ingest from that area's documents; [] if none yet).
+export async function fetchSuggestions(area) {
+  try {
+    const r = await fetch(url(`/api/suggestions?area=${encodeURIComponent(area)}`))
+    if (!r.ok) return []
+    const list = await r.json()
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+
 // POST /api/feedback  { session_id, area, question, answer, vote }
 export async function sendFeedback(payload) {
   await fetch(url('/api/feedback'), {

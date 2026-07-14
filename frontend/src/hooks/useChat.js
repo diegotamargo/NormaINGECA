@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchAreas, resetSession, sendFeedback, streamChat } from '../api/client.js'
+import {
+  fetchAreas,
+  fetchSuggestions,
+  resetSession,
+  sendFeedback,
+  streamChat,
+} from '../api/client.js'
 
 // Stable session id per browser tab (matches the old Vue store behaviour).
 const SESSION_ID = 'sess-' + Math.random().toString(36).slice(2)
@@ -31,8 +37,21 @@ export function useChat() {
   const [busy, setBusy] = useState(false)
   // Id of the message whose sources are shown in the right-hand panel.
   const [activeSourcesId, setActiveSourcesId] = useState(null)
+  // Example questions for the current area (generated at ingest from its PDFs).
+  const [suggestions, setSuggestions] = useState([])
 
   const messages = messagesByArea[area] || []
+
+  // Load area-specific example questions whenever the active area changes.
+  useEffect(() => {
+    let alive = true
+    fetchSuggestions(area).then((list) => {
+      if (alive) setSuggestions(list)
+    })
+    return () => {
+      alive = false
+    }
+  }, [area])
 
   // Load the real area list / labels from the backend.
   useEffect(() => {
@@ -166,5 +185,6 @@ export function useChat() {
     newAnalysis,
     activeSources,
     showSourcesFor: setActiveSourcesId,
+    suggestions,
   }
 }

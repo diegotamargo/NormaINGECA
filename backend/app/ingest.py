@@ -20,6 +20,7 @@ and rebuild from scratch.
 """
 import os
 import sys
+import json
 import logging
 
 from llama_index.core import (
@@ -36,6 +37,37 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("norma.ingest")
 
 
+def _write_suggestions(area: str, documents: list, vector_dir: str) -> None:
+    """Ask the LLM for 3 short example questions grounded in this area's ACTUAL
+    documents and cache them next to the index (suggestions.json). Workers read
+    this file to show area-specific prompts on the empty screen. Best-effort:
+    any failure (no LLM key, offline, parse error) just skips it and the UI
+    falls back to generic prompts."""
+    from llama_index.core import Settings
+    if getattr(Settings, "llm", None) is None or not documents:
+        return
+    sample = "\n\n".join((getattr(d, "text", "") or "")[:1500] for d in documents[:4])
+    prompt = (
+        "A partir de los siguientes fragmentos de documentación técnica, "
+        "redacta 3 preguntas de ejemplo, breves y concretas, que un ingeniero "
+        "podría hacer sobre este contenido. Devuelve solo las 3 preguntas, una "
+        "por línea, sin numerarlas ni añadir nada más.\n\n"
+        f"Fragmentos:\n{sample}\n\nPreguntas:"
+    )
+    try:
+        resp = str(Settings.llm.complete(prompt))
+        questions = [ln.strip(" -•\t").strip() for ln in resp.splitlines()]
+        questions = [q for q in questions if len(q) > 8][:3]
+        if questions:
+            with open(os.path.join(vector_dir, "suggestions.json"), "w",
+                      encoding="utf-8") as f:
+                json.dump(questions, f, ensure_ascii=False, indent=2)
+            logger.info("Wrote %d example questions for area '%s'.",
+                        len(questions), area)
+    except Exception:  # noqa: BLE001 — suggestions are optional, never fatal
+        logger.exception("Could not generate suggestions for area '%s'", area)
+
+
 def sync_area(area: str, pdf_dir: str, vector_dir: str) -> dict:
     """Sync one area's index with its PDF folder.
 
@@ -49,6 +81,19 @@ def sync_area(area: str, pdf_dir: str, vector_dir: str) -> dict:
 
     if not pdf_dir or not os.path.exists(pdf_dir):
         logger.error("PDF directory missing or unreachable: %s — skipping", pdf_dir)
+        return stats
+
+    # An EMPTY area (folder exists but has no PDFs yet) is not an error — it is
+    # simply not populated. Detect it before SimpleDirectoryReader, which would
+    # otherwise raise "No files found" and mark the area as failed (making the
+    # whole ingest exit non-zero over a perfectly normal empty area).
+    try:
+        has_pdf = any(f.lower().endswith(".pdf") for f in os.listdir(pdf_dir))
+    except OSError:
+        logger.error("PDF directory unreachable: %s — skipping", pdf_dir)
+        return stats
+    if not has_pdf:
+        logger.info("No PDFs in %s yet — skipping (nothing to index).", pdf_dir)
         return stats
 
     try:
@@ -102,6 +147,12 @@ def sync_area(area: str, pdf_dir: str, vector_dir: str) -> dict:
         index.storage_context.persist(persist_dir=vector_dir)
         logger.info("Index persisted at: %s", vector_dir)
         stats["status"] = "ok"
+
+        # (Re)generate example questions only when the corpus actually changed
+        # or none exist yet — a no-op re-ingest must not spend an LLM call.
+        sugg_path = os.path.join(vector_dir, "suggestions.json")
+        if stats["new"] or stats["updated"] or not os.path.exists(sugg_path):
+            _write_suggestions(area, documents, vector_dir)
     except Exception:  # noqa: BLE001 — one bad area must not abort the others
         logger.exception("Failed to sync area '%s'", area)
         stats["status"] = "error"

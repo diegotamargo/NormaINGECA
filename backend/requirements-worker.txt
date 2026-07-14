@@ -23,3 +23,7 @@ llama-index-llms-google-genai==0.9.6
 
 # Local embedding + reranker stack (Qwen3-Embedding-0.6B, bge-reranker-v2-m3)
 llama-index-embeddings-huggingface==0.7.0
+
+# System tray icon (clean UI, no console) + its image dependency
+pystray==0.19.5
+Pillow==11.0.0

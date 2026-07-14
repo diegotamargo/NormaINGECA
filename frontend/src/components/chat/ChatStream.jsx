@@ -5,7 +5,15 @@ import ThinkingIndicator from './ThinkingIndicator.jsx'
 // The scrolling conversation. Renders bubbles, auto-scrolls to the newest
 // content, and shows the "Analizando" indicator while the assistant reply is
 // still empty (i.e. before the first streamed token).
-export default function ChatStream({ messages, busy, areaLabel, onVote, onOpenSources, onSuggest }) {
+export default function ChatStream({
+  messages,
+  busy,
+  areaLabel,
+  onVote,
+  onOpenSources,
+  onSuggest,
+  suggestions,
+}) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -21,7 +29,7 @@ export default function ChatStream({ messages, busy, areaLabel, onVote, onOpenSo
   return (
     <div className="flex-1 overflow-y-auto flex flex-col pb-32 items-center w-full custom-scrollbar">
       {isEmpty ? (
-        <EmptyState areaLabel={areaLabel} onSuggest={onSuggest} />
+        <EmptyState areaLabel={areaLabel} onSuggest={onSuggest} suggestions={suggestions} />
       ) : (
         <div className="w-full max-w-[1000px] py-lg flex flex-col gap-xl">
           {messages.map((m) => {
@@ -45,13 +53,18 @@ export default function ChatStream({ messages, busy, areaLabel, onVote, onOpenSo
   )
 }
 
-const SUGGESTIONS = [
+// Generic fallback used only until the backend returns area-specific example
+// questions (generated at ingest from that area's PDFs), or when an area has
+// no documents indexed yet.
+const FALLBACK_SUGGESTIONS = [
   '¿Resistencia máxima de un conductor de cobre de 2,5 mm²?',
   '¿Qué exige la normativa para instalaciones fijas?',
   'Resume los requisitos de aislamiento aplicables.',
 ]
 
-function EmptyState({ areaLabel, onSuggest }) {
+function EmptyState({ areaLabel, onSuggest, suggestions }) {
+  const prompts =
+    Array.isArray(suggestions) && suggestions.length ? suggestions : FALLBACK_SUGGESTIONS
   return (
     <div className="w-full max-w-[720px] flex-1 flex flex-col items-center justify-center text-center py-lg gap-md">
       <div className="w-16 h-16 rounded-xl bg-primary-container/20 border border-primary-container/30 flex items-center justify-center">
@@ -70,7 +83,7 @@ function EmptyState({ areaLabel, onSuggest }) {
         respuestas se generan a partir de los documentos indexados y muestran sus fuentes.
       </p>
       <div className="flex flex-col gap-2 w-full max-w-[520px] mt-2">
-        {SUGGESTIONS.map((s) => (
+        {prompts.map((s) => (
           <button
             key={s}
             onClick={() => onSuggest(s)}

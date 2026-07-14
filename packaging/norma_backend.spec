@@ -31,6 +31,8 @@ hiddenimports = (
     # Local embedding stack (Qwen3-Embedding-0.6B on every PC)
     + collect_submodules("sentence_transformers")
     + collect_submodules("transformers")
+    # System tray icon (pystray picks its Windows backend dynamically)
+    + collect_submodules("pystray")
 )
 
 datas = (
@@ -40,6 +42,8 @@ datas = (
     # model card templates) that must travel with the exe.
     + collect_data_files("transformers", include_py_files=False)
     + collect_data_files("sentence_transformers", include_py_files=False)
+    # The tray icon image, loaded at runtime via _MEIPASS.
+    + [("launcher.ico", ".")]
 )
 
 a = Analysis(
@@ -56,15 +60,32 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
+# ONEDIR mode (exclude_binaries=True + COLLECT): the exe and all its DLLs
+# (torch is ~1 GB) live UNPACKED in a folder next to the exe. In the previous
+# ONEFILE mode PyInstaller re-extracted that ~1 GB to a temp dir on EVERY
+# launch — tens of seconds of startup plus antivirus rescans each time. ONEDIR
+# extracts nothing at launch, so startup is far faster and steadier. The whole
+# folder is bundled inside NormaINGECA_Setup.exe, so end users still get a
+# single installer.
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="norma-backend",
     icon="launcher.ico",
-    console=True,          # console shows logs; closing it stops the app
+    console=False,         # no console window: clean UI for end users.
+                           # Logs are redirected to a file by the entry point
+                           # (see norma_backend_entry.py) so IT can still debug.
     upx=False,
     disable_windowed_traceback=False,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    name="norma-backend",
 )

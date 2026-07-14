@@ -17,6 +17,7 @@ export default function App() {
     newAnalysis,
     activeSources,
     showSourcesFor,
+    suggestions,
   } = useChat()
 
   // Layout / UI state (kept out of the chat hook on purpose).
@@ -66,6 +67,9 @@ export default function App() {
           onAsk={ask}
           onVote={vote}
           onOpenSources={openSources}
+          sourcePanelOpen={sourcePanelOpen}
+          onToggleSources={() => setSourcePanelOpen((v) => !v)}
+          suggestions={suggestions}
         />
 
         <SourcePanel
